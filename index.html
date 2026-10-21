@@ -208,6 +208,14 @@
             cursor: pointer;
             text-align: center;
         }
+        /* Chân trang bản quyền */
+        .footer-copyright {
+            text-align: center;
+            font-style: italic;
+            color: var(--text-sub);
+            font-size: 13px;
+            margin: 30px 0 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -245,6 +253,11 @@
             <button class="btn-secondary" onclick="document.getElementById('restoreInput').click()">⬆️ Khôi phục</button>
         </div>
         <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="restoreData(event)">
+    </div>
+
+    <!-- Bản quyền chân trang -->
+    <div class="footer-copyright">
+        © 2026 - Nguyễn Hữu Thành
     </div>
 
     <script>
@@ -286,7 +299,7 @@
             }
         }
 
-        let notes = JSON.parse(localStorage.getItem('my_notes_v2')) || [];
+        let notes = JSON.parse(localStorage.getItem('my_notes_v3')) || [];
 
         function renderNotes() {
             const container = document.getElementById('noteListContainer');
@@ -296,18 +309,30 @@
                 return;
             }
 
-            container.innerHTML = notes.map((item, index) => `
-                <div class="note-item ${item.completed ? 'completed' : ''}">
-                    <div class="note-left">
-                        <div class="custom-checkbox" onclick="toggleComplete(${index})"></div>
-                        <div class="note-info">
-                            <span class="note-date-badge">${item.day}/${item.month}/${item.year}</span>
-                            <span class="note-content">${item.content}</span>
+            // Sắp xếp thông minh: Việc chưa hoàn thành lên trên, đã hoàn thành xuống dưới
+            // Giữ nguyên thứ tự tạo trong từng nhóm
+            let sortedNotes = [...notes].sort((a, b) => {
+                if (a.completed === b.completed) return 0;
+                return a.completed ? 1 : -1; // completed = true sẽ nằm sau (dưới)
+            });
+
+            container.innerHTML = sortedNotes.map((item) => {
+                // Tìm lại đúng vị trí index thực tế trong mảng gốc `notes` để xử lý
+                let originalIndex = notes.indexOf(item);
+
+                return `
+                    <div class="note-item ${item.completed ? 'completed' : ''}">
+                        <div class="note-left">
+                            <div class="custom-checkbox" onclick="toggleComplete(${originalIndex})"></div>
+                            <div class="note-info">
+                                <span class="note-date-badge">${item.day}/${item.month}/${item.year}</span>
+                                <span class="note-content">${item.content}</span>
+                            </div>
                         </div>
+                        <button class="delete-btn" onclick="deleteNote(${originalIndex})">Xóa</button>
                     </div>
-                    <button class="delete-btn" onclick="deleteNote(${index})">Xóa</button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function addNote() {
@@ -327,14 +352,13 @@
                 month: String(month).padStart(2, '0'),
                 year: year,
                 content: content,
-                completed: false // Mặc định chưa hoàn thành
+                completed: false
             });
 
             saveAndRender();
             contentInput.value = '';
         }
 
-        // Đổi trạng thái hoàn thành khi bấm vào ô tròn
         function toggleComplete(index) {
             notes[index].completed = !notes[index].completed;
             saveAndRender();
@@ -348,7 +372,7 @@
         }
 
         function saveAndRender() {
-            localStorage.setItem('my_notes_v2', JSON.stringify(notes));
+            localStorage.setItem('my_notes_v3', JSON.stringify(notes));
             renderNotes();
         }
 
