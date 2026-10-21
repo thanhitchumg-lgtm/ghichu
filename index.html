@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Cấu hình App toàn màn hình trên iPhone -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Ghi Chú">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3233/3233483.png">
+    
+    <title>Ghi Chú Cá Nhân</title>
+    <style>
+        :root {
+            --bg-color: #F2F2F7;
+            --card-bg: #FFFFFF;
+            --primary: #007AFF;
+            --danger: #FF3B30;
+            --text-main: #000000;
+            --text-sub: #8E8E93;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            user-select: none;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 20px 0 16px 0;
+        }
+        .form-card, .note-list {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-bottom: 16px;
+        }
+        .input-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #E5E5EA;
+            border-radius: 10px;
+            font-size: 16px;
+            background: #FAFAFC;
+            outline: none;
+        }
+        textarea {
+            resize: none;
+            height: 80px;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+        }
+        /* Khung chọn Ngày - Tháng - Năm thu gọn */
+        .date-select-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        button.add-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        button.add-btn:active {
+            opacity: 0.8;
+        }
+        .list-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 8px 0 10px 0;
+        }
+        .note-list {
+            padding: 0;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .note-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 14px 16px;
+            border-bottom: 1px solid #E5E5EA;
+            gap: 12px;
+        }
+        .note-item:last-child {
+            border-bottom: none;
+        }
+        .note-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+        .note-date-badge {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            background: #E8F1FC;
+            padding: 2px 8px;
+            border-radius: 6px;
+            width: fit-content;
+        }
+        .note-content {
+            font-size: 15px;
+            color: var(--text-main);
+            word-break: break-word;
+            line-height: 1.4;
+        }
+        .delete-btn {
+            background: #FFE5E5;
+            color: var(--danger);
+            border: none;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .empty-text {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-sub);
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Ghi Chú</h1>
+
+    <!-- Form nhập liệu -->
+    <div class="form-card">
+        <div class="input-group">
+            <label>Chọn Ngày / Tháng / Năm (Năm gọn 2 số cuối)</label>
+            <div class="date-select-row">
+                <select id="selectDay"></select>
+                <select id="selectMonth"></select>
+                <select id="selectYear"></select>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Nội dung ghi chú</label>
+            <textarea id="noteContent" placeholder="Nhập nội dung ghi chú..."></textarea>
+        </div>
+
+        <button class="add-btn" onclick="addNote()">+ Thêm Ghi Chú</button>
+    </div>
+
+    <!-- Danh sách hiển thị -->
+    <div class="list-header">Danh sách ghi chú</div>
+    <div class="note-list" id="noteListContainer"></div>
+
+    <script>
+        // Khởi tạo các ô chọn Ngày - Tháng - Năm tự động
+        function initDateSelectors() {
+            const daySelect = document.getElementById('selectDay');
+            const monthSelect = document.getElementById('selectMonth');
+            const yearSelect = document.getElementById('selectYear');
+
+            const today = new Date();
+            const currentDay = today.getDate();
+            const currentMonth = today.getMonth() + 1;
+            const currentYearFull = today.getFullYear(); // VD: 2026
+            const currentYearShort = currentYearFull % 100; // VD: 26
+
+            // Điền Ngày (1 - 31)
+            for (let d = 1; d <= 31; d++) {
+                let opt = document.createElement('option');
+                opt.value = d;
+                opt.text = `Ngày ${d}`;
+                if (d === currentDay) opt.selected = true;
+                daySelect.appendChild(opt);
+            }
+
+            // Điền Tháng (1 - 12)
+            for (let m = 1; m <= 12; m++) {
+                let opt = document.createElement('option');
+                opt.value = m;
+                opt.text = `Tháng ${m}`;
+                if (m === currentMonth) opt.selected = true;
+                monthSelect.appendChild(opt);
+            }
+
+            // Điền Năm (hiển thị đầy đủ 4 số, nhưng lưu/hiển thị gọn 2 số cuối)
+            for (let y = currentYearFull - 5; y <= currentYearFull + 5; y++) {
+                let shortY = y % 100;
+                let formattedShortY = String(shortY).padStart(2, '0');
+                let opt = document.createElement('option');
+                opt.value = formattedShortY;
+                opt.text = `Năm ${formattedShortY}`; // Hiển thị "Năm 26" cho gọn
+                if (y === currentYearFull) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+        }
+
+        // Quản lý dữ liệu ghi chú
+        let notes = JSON.parse(localStorage.getItem('my_notes_v1')) || [];
+
+        function renderNotes() {
+            const container = document.getElementById('noteListContainer');
+
+            if (notes.length === 0) {
+                container.innerHTML = '<div class="empty-text">Chưa có ghi chú nào</div>';
+                return;
+            }
+
+            container.innerHTML = notes.map((item, index) => `
+                <div class="note-item">
+                    <div class="note-info">
+                        <span class="note-date-badge">${item.day}/${item.month}/${item.year}</span>
+                        <span class="note-content">${item.content}</span>
+                    </div>
+                    <button class="delete-btn" onclick="deleteNote(${index})">Xóa</button>
+                </div>
+            `).join('');
+        }
+
+        function addNote() {
+            const day = document.getElementById('selectDay').value;
+            const month = document.getElementById('selectMonth').value;
+            const year = document.getElementById('selectYear').value;
+            const contentInput = document.getElementById('noteContent');
+            const content = contentInput.value.trim();
+
+            if (!content) {
+                alert('Vui lòng nhập nội dung ghi chú!');
+                return;
+            }
+
+            notes.unshift({
+                day: String(day).padStart(2, '0'),
+                month: String(month).padStart(2, '0'),
+                year: year,
+                content: content
+            });
+
+            localStorage.setItem('my_notes_v1', JSON.stringify(notes));
+            contentInput.value = '';
+            renderNotes();
+        }
+
+        function deleteNote(index) {
+            if (confirm('Bạn có chắc muốn xóa ghi chú này?')) {
+                notes.splice(index, 1);
+                localStorage.setItem('my_notes_v1', JSON.stringify(notes));
+                renderNotes();
+            }
+        }
+
+        // Chạy khởi tạo
+        initDateSelectors();
+        renderNotes();
+    </script>
+</body>
+</html>
