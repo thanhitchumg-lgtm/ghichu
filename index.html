@@ -10,12 +10,13 @@
     <meta name="apple-mobile-web-app-title" content="Ghi Chú">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3233/3233483.png">
     
-    <title>Ghi Chú Cá Nhân</title>
+    <title>Ghi Chú & Việc Cần Làm</title>
     <style>
         :root {
             --bg-color: #F2F2F7;
             --card-bg: #FFFFFF;
             --primary: #007AFF;
+            --success: #34C759;
             --danger: #FF3B30;
             --text-main: #000000;
             --text-sub: #8E8E93;
@@ -37,7 +38,7 @@
             font-weight: 700;
             margin: 20px 0 16px 0;
         }
-        .form-card, .note-list {
+        .form-card, .note-list, .backup-card {
             background: var(--card-bg);
             border-radius: 16px;
             padding: 16px;
@@ -70,7 +71,6 @@
         input:focus, select:focus, textarea:focus {
             border-color: var(--primary);
         }
-        /* Khung chọn Ngày - Tháng - Năm thu gọn */
         .date-select-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -99,18 +99,54 @@
         .note-list {
             padding: 0;
             overflow: hidden;
-            margin-bottom: 30px;
         }
         .note-item {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
             padding: 14px 16px;
             border-bottom: 1px solid #E5E5EA;
             gap: 12px;
         }
         .note-item:last-child {
             border-bottom: none;
+        }
+        .note-left {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            flex: 1;
+            overflow: hidden;
+        }
+        /* Ô tròn Checkbox tùy chỉnh */
+        .custom-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--text-sub);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 1px;
+            transition: all 0.2s;
+        }
+        .note-item.completed .custom-checkbox {
+            background: var(--success);
+            border-color: var(--success);
+        }
+        .custom-checkbox::after {
+            content: '';
+            width: 6px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            display: none;
+        }
+        .note-item.completed .custom-checkbox::after {
+            display: block;
         }
         .note-info {
             display: flex;
@@ -119,11 +155,11 @@
             flex: 1;
         }
         .note-date-badge {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             color: var(--primary);
             background: #E8F1FC;
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 6px;
             width: fit-content;
         }
@@ -132,6 +168,12 @@
             color: var(--text-main);
             word-break: break-word;
             line-height: 1.4;
+            transition: color 0.2s;
+        }
+        /* Hiệu ứng gạch ngang khi hoàn thành */
+        .note-item.completed .note-content {
+            text-decoration: line-through;
+            color: var(--text-sub);
         }
         .delete-btn {
             background: #FFE5E5;
@@ -149,6 +191,22 @@
             padding: 24px;
             color: var(--text-sub);
             font-size: 15px;
+        }
+        .backup-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .btn-secondary {
+            background: #E5E5EA;
+            color: var(--text-main);
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
         }
     </style>
 </head>
@@ -179,8 +237,17 @@
     <div class="list-header">Danh sách ghi chú</div>
     <div class="note-list" id="noteListContainer"></div>
 
+    <!-- Sao lưu & Khôi phục -->
+    <div class="list-header" style="margin-top: 20px;">Sao lưu & Khôi phục</div>
+    <div class="backup-card">
+        <div class="backup-grid">
+            <button class="btn-secondary" onclick="backupData()">⬇️ Sao lưu file</button>
+            <button class="btn-secondary" onclick="document.getElementById('restoreInput').click()">⬆️ Khôi phục</button>
+        </div>
+        <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="restoreData(event)">
+    </div>
+
     <script>
-        // Khởi tạo các ô chọn Ngày - Tháng - Năm tự động
         function initDateSelectors() {
             const daySelect = document.getElementById('selectDay');
             const monthSelect = document.getElementById('selectMonth');
@@ -191,7 +258,7 @@
             const currentMonth = today.getMonth() + 1;
             const currentYear = today.getFullYear();
 
-            // Điền Ngày (1 - 31) - Chỉ hiện số
+            // Ngày (1 - 31)
             for (let d = 1; d <= 31; d++) {
                 let opt = document.createElement('option');
                 opt.value = d;
@@ -200,7 +267,7 @@
                 daySelect.appendChild(opt);
             }
 
-            // Điền Tháng (1 - 12) - Chỉ hiện số
+            // Tháng (1 - 12)
             for (let m = 1; m <= 12; m++) {
                 let opt = document.createElement('option');
                 opt.value = m;
@@ -209,7 +276,7 @@
                 monthSelect.appendChild(opt);
             }
 
-            // Điền Năm đầy đủ từ 2026 đến 2050
+            // Năm đầy đủ từ 2026 đến 2050
             for (let y = 2026; y <= 2050; y++) {
                 let opt = document.createElement('option');
                 opt.value = y;
@@ -219,8 +286,7 @@
             }
         }
 
-        // Quản lý dữ liệu ghi chú
-        let notes = JSON.parse(localStorage.getItem('my_notes_v1')) || [];
+        let notes = JSON.parse(localStorage.getItem('my_notes_v2')) || [];
 
         function renderNotes() {
             const container = document.getElementById('noteListContainer');
@@ -231,10 +297,13 @@
             }
 
             container.innerHTML = notes.map((item, index) => `
-                <div class="note-item">
-                    <div class="note-info">
-                        <span class="note-date-badge">${item.day}/${item.month}/${item.year}</span>
-                        <span class="note-content">${item.content}</span>
+                <div class="note-item ${item.completed ? 'completed' : ''}">
+                    <div class="note-left">
+                        <div class="custom-checkbox" onclick="toggleComplete(${index})"></div>
+                        <div class="note-info">
+                            <span class="note-date-badge">${item.day}/${item.month}/${item.year}</span>
+                            <span class="note-content">${item.content}</span>
+                        </div>
                     </div>
                     <button class="delete-btn" onclick="deleteNote(${index})">Xóa</button>
                 </div>
@@ -257,23 +326,62 @@
                 day: String(day).padStart(2, '0'),
                 month: String(month).padStart(2, '0'),
                 year: year,
-                content: content
+                content: content,
+                completed: false // Mặc định chưa hoàn thành
             });
 
-            localStorage.setItem('my_notes_v1', JSON.stringify(notes));
+            saveAndRender();
             contentInput.value = '';
-            renderNotes();
+        }
+
+        // Đổi trạng thái hoàn thành khi bấm vào ô tròn
+        function toggleComplete(index) {
+            notes[index].completed = !notes[index].completed;
+            saveAndRender();
         }
 
         function deleteNote(index) {
             if (confirm('Bạn có chắc muốn xóa ghi chú này?')) {
                 notes.splice(index, 1);
-                localStorage.setItem('my_notes_v1', JSON.stringify(notes));
-                renderNotes();
+                saveAndRender();
             }
         }
 
-        // Chạy khởi tạo
+        function saveAndRender() {
+            localStorage.setItem('my_notes_v2', JSON.stringify(notes));
+            renderNotes();
+        }
+
+        function backupData() {
+            if (notes.length === 0) return alert('Chưa có dữ liệu để sao lưu!');
+            const dataStr = JSON.stringify(notes, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sao-luu-ghi-chu-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+        }
+
+        function restoreData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        notes = imported;
+                        saveAndRender();
+                        alert('Khôi phục dữ liệu thành công!');
+                    }
+                } catch (err) {
+                    alert('File sao lưu không hợp lệ!');
+                }
+            };
+            reader.readAsText(file);
+        }
+
         initDateSelectors();
         renderNotes();
     </script>
