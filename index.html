@@ -159,7 +159,7 @@
     <!-- Form nhập liệu -->
     <div class="form-card">
         <div class="input-group">
-            <label>Chọn Ngày / Tháng / Năm (Năm gọn 2 số cuối)</label>
+            <label>Chọn Ngày / Tháng / Năm</label>
             <div class="date-select-row">
                 <select id="selectDay"></select>
                 <select id="selectMonth"></select>
@@ -189,35 +189,32 @@
             const today = new Date();
             const currentDay = today.getDate();
             const currentMonth = today.getMonth() + 1;
-            const currentYearFull = today.getFullYear(); // VD: 2026
-            const currentYearShort = currentYearFull % 100; // VD: 26
+            const currentYear = today.getFullYear();
 
-            // Điền Ngày (1 - 31)
+            // Điền Ngày (1 - 31) - Chỉ hiện số
             for (let d = 1; d <= 31; d++) {
                 let opt = document.createElement('option');
                 opt.value = d;
-                opt.text = `Ngày ${d}`;
+                opt.text = d;
                 if (d === currentDay) opt.selected = true;
                 daySelect.appendChild(opt);
             }
 
-            // Điền Tháng (1 - 12)
+            // Điền Tháng (1 - 12) - Chỉ hiện số
             for (let m = 1; m <= 12; m++) {
                 let opt = document.createElement('option');
                 opt.value = m;
-                opt.text = `Tháng ${m}`;
+                opt.text = m;
                 if (m === currentMonth) opt.selected = true;
                 monthSelect.appendChild(opt);
             }
 
-            // Điền Năm (hiển thị đầy đủ 4 số, nhưng lưu/hiển thị gọn 2 số cuối)
-            for (let y = currentYearFull - 5; y <= currentYearFull + 5; y++) {
-                let shortY = y % 100;
-                let formattedShortY = String(shortY).padStart(2, '0');
+            // Điền Năm đầy đủ từ 2026 đến 2050
+            for (let y = 2026; y <= 2050; y++) {
                 let opt = document.createElement('option');
-                opt.value = formattedShortY;
-                opt.text = `Năm ${formattedShortY}`; // Hiển thị "Năm 26" cho gọn
-                if (y === currentYearFull) opt.selected = true;
+                opt.value = y;
+                opt.text = y;
+                if (y === currentYear) opt.selected = true;
                 yearSelect.appendChild(opt);
             }
         }
